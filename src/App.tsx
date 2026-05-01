@@ -154,7 +154,6 @@ const App: React.FC = () => {
     if (!prefs) return;
     setSyncStatus("syncing");
     try {
-      const state = localDB.getFullState();
       let fileId = prefs.googleDrive?.fileId;
 
       if (!fileId) {
@@ -162,6 +161,20 @@ const App: React.FC = () => {
         if (existing) fileId = existing.id;
       }
 
+      // First download remote and merge
+      if (fileId) {
+         try {
+           const remoteData = await googleDriveService.downloadBackup(token, fileId);
+           if (remoteData) {
+              localDB.mergeFullState(remoteData);
+              refreshData();
+           }
+         } catch (e) {
+           console.error("Failed to download remote data, proceeding with local upload", e);
+         }
+      }
+
+      const state = localDB.getFullState();
       const newFile = await googleDriveService.uploadBackup(
         token,
         state,
@@ -183,10 +196,32 @@ const App: React.FC = () => {
       console.error("Auto-sync error:", e);
       if (e.message && e.message.includes("401")) {
         setDriveToken(null);
+        setUserProfile(null);
         localStorage.removeItem("myexpense_drive_token");
+        localStorage.removeItem("myexpense_user_info");
         // Token expired silently, user will see the disconnected state
       }
       setSyncStatus("error");
+    }
+  };
+
+  const [userProfile, setUserProfile] = useState<{name: string, email: string, picture: string} | null>(() => {
+    const saved = localStorage.getItem("myexpense_user_info");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const fetchUserInfo = async (token: string) => {
+    try {
+      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data && data.email) {
+        localStorage.setItem("myexpense_user_info", JSON.stringify(data));
+        setUserProfile(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch user info", e);
     }
   };
 
@@ -199,6 +234,7 @@ const App: React.FC = () => {
       JSON.stringify({ token, expiry: Date.now() + expiresIn * 1000 }),
     );
     setDriveToken(token);
+    fetchUserInfo(token);
     setSyncStatus("syncing");
     try {
       const file = await googleDriveService.findBackupFile(token);
@@ -227,7 +263,9 @@ const App: React.FC = () => {
       setSyncStatus("error");
       if (e.message && e.message.includes("401")) {
         setDriveToken(null);
+        setUserProfile(null);
         localStorage.removeItem("myexpense_drive_token");
+        localStorage.removeItem("myexpense_user_info");
         // Session expired silently
       } else if (e.message && e.message.includes("403")) {
         alert(
@@ -240,7 +278,7 @@ const App: React.FC = () => {
   };
 
   const webLogin = useGoogleLogin({
-    scope: "https://www.googleapis.com/auth/drive.appdata",
+    scope: "https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
     onSuccess: (tokenResponse) => {
       handleLoginSuccess(tokenResponse.access_token, tokenResponse.expires_in);
     },
@@ -549,6 +587,40 @@ const App: React.FC = () => {
                     exit={{ opacity: 0, y: -20 }}
                     className="space-y-6 pb-40"
                   >
+                    {/* Account Section */}
+                    {driveToken && userProfile && (
+                      <div className="bg-gradient-to-br from-indigo-50 to-white backdrop-blur-md rounded-[36px] p-7 border border-indigo-100 shadow-sm space-y-6">
+                        <div className="flex items-center gap-4">
+                           {userProfile.picture ? (
+                             <img src={userProfile.picture} alt="Profile" className="w-14 h-14 rounded-full border-4 border-white shadow-md bg-white"/>
+                           ) : (
+                             <div className="bg-indigo-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center font-bold text-xl uppercase">
+                               {userProfile.name ? userProfile.name[0] : userProfile.email[0]}
+                             </div>
+                           )}
+                           <div className="flex-1">
+                             <h3 className="text-sm font-black text-slate-800 font-heading truncate">
+                               {userProfile.name || "User"}
+                             </h3>
+                             <p className="text-[10px] text-slate-400 font-bold tracking-wider truncate">
+                               {userProfile.email}
+                             </p>
+                           </div>
+                           <button
+                             onClick={() => {
+                               setDriveToken(null);
+                               setUserProfile(null);
+                               localStorage.removeItem("myexpense_drive_token");
+                               localStorage.removeItem("myexpense_user_info");
+                             }}
+                             className="bg-rose-50 text-rose-600 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm active:scale-95 transition-all text-center flex-shrink-0"
+                           >
+                              Logout
+                           </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* App Installation Section */}
                     
                       <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-[36px] p-7 border border-indigo-400 shadow-xl space-y-4 text-white">

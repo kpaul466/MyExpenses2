@@ -148,5 +148,62 @@ export const localDB = {
     if (state.plannerItems) localStorage.setItem('myexpense_planner_items', JSON.stringify(state.plannerItems));
     if (state.prefs) localStorage.setItem('myexpense_prefs', JSON.stringify(state.prefs));
     markModified();
+  },
+  mergeFullState: (remoteState: any) => {
+    const mergeArrays = (local: any[], remote: any[], customMerge?: (l: any, r: any) => any) => {
+      if (!remote) return local;
+      const mergedMap = new Map();
+      remote.forEach(item => mergedMap.set(item.id, item));
+      local.forEach(item => {
+        if (!mergedMap.has(item.id)) {
+           mergedMap.set(item.id, item);
+        } else if (customMerge) {
+           mergedMap.set(item.id, customMerge(item, mergedMap.get(item.id)));
+        }
+      });
+      return Array.from(mergedMap.values());
+    };
+
+    if (remoteState.transactions) {
+      const merged = mergeArrays(localDB.getTransactions(), remoteState.transactions, (l, r) => ({
+        ...r,
+        isCleared: l.isCleared || r.isCleared 
+      }));
+       // sort by timestamp descending
+      merged.sort((a, b) => b.timestamp - a.timestamp);
+      localStorage.setItem('myexpense_transactions', JSON.stringify(merged));
+    }
+    if (remoteState.people) {
+      const merged = mergeArrays(localDB.getPeople(), remoteState.people);
+      localStorage.setItem('myexpense_people', JSON.stringify(merged));
+    }
+    if (remoteState.categories) {
+      const merged = mergeArrays(localDB.getCategories(), remoteState.categories);
+      localStorage.setItem('myexpense_categories', JSON.stringify(merged));
+    }
+    if (remoteState.plannerGroups) {
+      const merged = mergeArrays(localDB.getPlannerGroups(), remoteState.plannerGroups);
+      localStorage.setItem('myexpense_planner_groups', JSON.stringify(merged));
+    }
+    if (remoteState.plannerItems) {
+      const merged = mergeArrays(localDB.getPlannerItems(), remoteState.plannerItems, (l, r) => ({
+         ...r,
+         isBought: l.isBought || r.isBought
+      }));
+      localStorage.setItem('myexpense_planner_items', JSON.stringify(merged));
+    }
+    // merge prefs (excluding googleDrive settings which are device specific or token specific)
+    if (remoteState.prefs) {
+      const localPrefs = localDB.getPrefs();
+      const mergedPrefs = {
+         ...localPrefs,
+         currency: remoteState.prefs.currency || localPrefs.currency, 
+         incomePrivacy: remoteState.prefs.incomePrivacy ?? localPrefs.incomePrivacy,
+         expensePrivacy: remoteState.prefs.expensePrivacy ?? localPrefs.expensePrivacy,
+         watchedCategoryIds: Array.from(new Set([...(localPrefs.watchedCategoryIds || []), ...(remoteState.prefs.watchedCategoryIds || [])]))
+      };
+      localStorage.setItem('myexpense_prefs', JSON.stringify(mergedPrefs));
+    }
+    markModified();
   }
 };
