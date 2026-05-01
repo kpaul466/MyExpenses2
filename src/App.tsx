@@ -645,26 +645,28 @@ const App: React.FC = () => {
                   >
                     {/* Account Section */}
                     {driveToken && userProfile && (
-                      <div className="bg-gradient-to-br from-indigo-50 to-white backdrop-blur-md rounded-[36px] p-7 border border-indigo-100 shadow-sm space-y-6">
-                        <div className="flex items-center gap-4">
-                           {userProfile.picture ? (
-                             <img src={userProfile.picture} alt="Profile" className="w-14 h-14 rounded-full border-4 border-white shadow-md bg-white"/>
-                           ) : (
-                             <div className="bg-indigo-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center font-bold text-xl uppercase">
-                               {userProfile.name ? userProfile.name[0] : userProfile.email[0]}
+                      <div className="bg-gradient-to-br from-indigo-50 to-white backdrop-blur-md rounded-[32px] p-5 border border-indigo-100 shadow-sm">
+                        <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto min-w-0 overflow-hidden">
+                             {userProfile.picture ? (
+                               <img src={userProfile.picture} alt="Profile" className="w-12 h-12 rounded-full border-2 border-white shadow-sm bg-white flex-shrink-0"/>
+                             ) : (
+                               <div className="bg-indigo-500 text-white w-12 h-12 rounded-full shadow-md flex items-center justify-center font-bold text-lg uppercase flex-shrink-0">
+                                 {userProfile.name ? userProfile.name[0] : userProfile.email[0]}
+                               </div>
+                             )}
+                             <div className="flex-1 min-w-0 flex flex-col">
+                               <h3 className="text-[13px] font-black text-slate-800 font-heading truncate">
+                                 {userProfile.name || "User"}
+                               </h3>
+                               <p className="text-[9px] text-slate-400 font-bold tracking-wider truncate">
+                                 {userProfile.email}
+                               </p>
                              </div>
-                           )}
-                           <div className="flex-1">
-                             <h3 className="text-sm font-black text-slate-800 font-heading truncate">
-                               {userProfile.name || "User"}
-                             </h3>
-                             <p className="text-[10px] text-slate-400 font-bold tracking-wider truncate">
-                               {userProfile.email}
-                             </p>
                            </div>
                            <button
                              onClick={handleLogout}
-                             className="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm active:scale-95 transition-all text-center flex-shrink-0 border border-rose-100"
+                             className="w-full sm:w-auto bg-rose-50 hover:bg-rose-100 text-rose-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm active:scale-95 transition-all text-center border border-rose-100 flex-shrink-0"
                            >
                               Logout
                            </button>

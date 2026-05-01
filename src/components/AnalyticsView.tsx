@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis } from 'recharts';
 import { Transaction, AppCategory, TransactionType } from '../types';
-import { BarChart3, TrendingUp, Wallet, ListChecks, Check } from 'lucide-react';
+import { BarChart3, TrendingUp, Wallet, ListChecks, Check, Download, FileText, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface AnalyticsViewProps {
   expenses: Transaction[];
@@ -14,9 +16,11 @@ interface AnalyticsViewProps {
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ expenses, categories, incomePrivacy, expensePrivacy, currency }) => {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const realizedExpenses = useMemo(() => 
-    expenses.filter(e => e.paymentMode === 'CASH'), 
+    expenses, 
   [expenses]);
 
   const currentMonthExpenses = useMemo(() => {
@@ -29,8 +33,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ expenses, categori
     });
   }, [realizedExpenses]);
 
+  const stats = useMemo(() => {
+    return currentMonthExpenses.reduce((acc, curr) => {
+      if (curr.type === 'INCOME') acc.income += curr.amount;
+      else acc.expense += curr.amount;
+      return acc;
+    }, { income: 0, expense: 0 });
+  }, [currentMonthExpenses]);
+
   const categoryData = useMemo(() => {
-    const groups = currentMonthExpenses.reduce((acc, curr) => {
+    const groups = currentMonthExpenses.filter(e => e.type === 'EXPENSE').reduce((acc, curr) => {
       acc[curr.categoryId] = (acc[curr.categoryId] || 0) + curr.amount;
       return acc;
     }, {} as Record<string, number>);
@@ -86,6 +98,42 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ expenses, categori
     }).format(amount);
   };
 
+  const handleExportPDF = async () => {
+    if (!reportRef.current) return;
+    setIsGenerating(true);
+
+    try {
+      // Small delay to ensure any animations or renders are settled
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Expense_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('PDF Generation failed:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const toggleCategorySelection = (id: string) => {
     setSelectedCategoryIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
@@ -94,6 +142,116 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ expenses, categori
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700 pb-40">
+      {/* Hidden Report Template for PDF Generation */}
+      <div className="fixed -left-[2000px] top-0 w-[800px] bg-white text-slate-900" ref={reportRef}>
+        <div className="p-10 space-y-10">
+          <div className="flex items-center justify-between border-b pb-8 border-slate-100">
+            <div>
+              <h1 className="text-3xl font-black font-heading text-indigo-600">Monthly Expense Report</h1>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">
+                Generated: {new Date().toLocaleDateString(undefined, { dateStyle: 'full' })}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="bg-slate-50 px-6 py-4 rounded-3xl inline-block border border-slate-100">
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Period Total</p>
+                 <p className="text-2xl font-black text-indigo-600 font-heading">{formatAmount(stats.expense, 'EXPENSE')}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-6">
+            <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100">
+               <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">Total Income</p>
+               <p className="text-xl font-black font-heading text-emerald-700">{formatAmount(stats.income, 'INCOME')}</p>
+            </div>
+            <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100">
+               <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-2">Total Expenses</p>
+               <p className="text-xl font-black font-heading text-rose-700">{formatAmount(stats.expense, 'EXPENSE')}</p>
+            </div>
+            <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100">
+               <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">Net Balance</p>
+               <p className="text-xl font-black font-heading text-blue-700">{formatAmount(stats.income - stats.expense)}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-10">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Wallet size={12} /> Category Allocation
+              </h3>
+              <div className="space-y-3">
+                {categoryData.map(cat => (
+                  <div key={cat.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                      <span className="text-xs font-bold text-slate-700">{cat.name}</span>
+                    </div>
+                    <span className="text-xs font-black text-slate-900">{formatAmount(cat.value, 'EXPENSE')}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <TrendingUp size={12} /> Trajectory Snapshot
+              </h3>
+               <div className="h-[200px] w-full border border-slate-100 rounded-3xl p-4 bg-slate-50/30">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={trendData}>
+                      <Area type="monotone" dataKey="expense" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} />
+                      <Area type="monotone" dataKey="income" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+               </div>
+               <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                 <p className="text-[10px] font-bold text-indigo-700 leading-relaxed uppercase tracking-tight">
+                    Your major spending this month was in <strong>{categoryData[0]?.name || 'N/A'}</strong>. 
+                    You saved {Math.max(0, Math.round(((stats.income - stats.expense) / stats.income) * 100)) || 0}% of your total income.
+                 </p>
+               </div>
+            </div>
+          </div>
+
+          <div className="pt-10 border-t border-slate-100">
+             <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Transaction Journal</h3>
+                <div className="bg-slate-900 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
+                  {currentMonthExpenses.length} Records
+                </div>
+             </div>
+             <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
+                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Note</th>
+                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {currentMonthExpenses.sort((a,b) => b.timestamp - a.timestamp).slice(0, 15).map(tx => {
+                    const cat = categories.find(c => c.id === tx.categoryId);
+                    return (
+                      <tr key={tx.id}>
+                        <td className="py-4 text-xs font-medium text-slate-500">{new Date(tx.timestamp).toLocaleDateString()}</td>
+                        <td className="py-4 text-xs font-black text-slate-900 uppercase tracking-tight">{cat?.name}</td>
+                        <td className="py-4 text-xs text-slate-400 italic truncate max-w-[150px]">{tx.note || '-'}</td>
+                        <td className={`py-4 text-xs font-black text-right ${tx.type === 'INCOME' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                          {tx.type === 'INCOME' ? '+' : '-'}{formatAmount(tx.amount)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+             </table>
+             {currentMonthExpenses.length > 15 && (
+               <p className="mt-4 text-center text-[10px] font-bold text-slate-400 italic tracking-wider">... and {currentMonthExpenses.length - 15} more records</p>
+             )}
+          </div>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
            <div className="bg-gradient-to-br from-indigo-600 to-violet-600 text-white p-3 rounded-[20px] shadow-lg shadow-indigo-100">
@@ -104,6 +262,26 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ expenses, categori
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Report for {new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
            </div>
         </div>
+        
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleExportPDF}
+          disabled={isGenerating}
+          className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-[11px] font-black font-heading uppercase tracking-widest transition-all ${isGenerating ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white shadow-xl shadow-slate-200 active:bg-slate-800'}`}
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              <span>Preparing...</span>
+            </>
+          ) : (
+            <>
+              <Download size={16} />
+              <span>Export PDF</span>
+            </>
+          )}
+        </motion.button>
       </div>
 
       <div className="bg-white rounded-[36px] p-6 border border-slate-100 shadow-sm">
