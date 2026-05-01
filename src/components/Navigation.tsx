@@ -28,7 +28,21 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <nav className="sticky bottom-0 w-full z-40 bg-slate-900/95 backdrop-blur-3xl border-t border-slate-800 shadow-[0_-8px_30px_rgba(0,0,0,0.3)] pb-safe flex flex-col mt-auto">
+    <nav className="sticky bottom-0 w-full z-40 bg-slate-900/95 backdrop-blur-3xl border-t border-slate-800 shadow-[0_-8px_30px_rgba(0,0,0,0.3)] pb-safe flex flex-col mt-auto relative">
+      <div className="absolute bottom-[100px] right-6 z-50 pointer-events-none">
+        <motion.button
+          whileTap={{ scale: 0.85 }}
+          onClick={() => onViewChange("add")}
+          className="pointer-events-auto bg-gradient-to-br from-indigo-500 to-violet-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(79,70,229,0.4)] hover:shadow-indigo-400 hover:-translate-y-1 transition-all group border-[4px] border-white"
+        >
+          <Plus
+            size={30}
+            strokeWidth={3}
+            className="group-hover:rotate-90 transition-transform duration-500"
+          />
+        </motion.button>
+      </div>
+
       <div className="w-full flex items-center justify-around h-16 relative">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -62,19 +76,6 @@ export const Navigation: React.FC<NavigationProps> = ({
           );
         })}
 
-        <div className="flex justify-center w-full absolute -top-6 right-6 pointer-events-none">
-          <motion.button
-            whileTap={{ scale: 0.85 }}
-            onClick={() => onViewChange("add")}
-            className="pointer-events-auto bg-gradient-to-br from-indigo-500 to-violet-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(79,70,229,0.4)] hover:shadow-indigo-400 hover:-translate-y-1 transition-all active:scale-90 group border-[4px] border-white z-50 ml-auto"
-          >
-            <Plus
-              size={30}
-              strokeWidth={3}
-              className="group-hover:rotate-90 transition-transform duration-500"
-            />
-          </motion.button>
-        </div>
       </div>
     </nav>
   );

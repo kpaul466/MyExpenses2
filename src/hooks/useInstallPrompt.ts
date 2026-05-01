@@ -3,10 +3,14 @@ export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isInIframe, setIsInIframe] = useState(false);
 
   useEffect(() => {
+    // Check if in iframe
+    setIsInIframe(window.self !== window.top);
+
     // Check if app is already in standalone mode
-    if (window.matchMedia("(display-mode: standalone)").matches) {
+    if (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) {
       setIsInstalled(true);
     }
 
@@ -43,5 +47,5 @@ export function useInstallPrompt() {
     }
   };
 
-  return { isInstallable, isInstalled, promptInstall };
+  return { isInstallable, isInstalled, isInIframe, promptInstall };
 }

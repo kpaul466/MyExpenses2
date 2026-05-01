@@ -70,7 +70,23 @@ const App: React.FC = () => {
   const [selectedCategoryForDetail, setSelectedCategoryForDetail] =
     useState<AppCategory | null>(null);
 
-  const { isInstallable, isInstalled, promptInstall } = useInstallPrompt();
+  const { isInstallable, isInstalled, isInIframe, promptInstall } = useInstallPrompt();
+
+  const handleLogoTouchStart = () => {
+    if (isInstallable) {
+      const timer = setTimeout(() => {
+        promptInstall();
+      }, 700);
+      (window as any).__longPressTimer = timer;
+    }
+  };
+
+  const handleLogoTouchEnd = () => {
+    if ((window as any).__longPressTimer) {
+      clearTimeout((window as any).__longPressTimer);
+      delete (window as any).__longPressTimer;
+    }
+  };
 
   const handleAddTransaction = (tx: Transaction) => {
     localDB.saveTransaction(tx);
@@ -168,9 +184,7 @@ const App: React.FC = () => {
       if (e.message && e.message.includes("401")) {
         setDriveToken(null);
         localStorage.removeItem("myexpense_drive_token");
-        alert(
-          "Your Google Drive session has expired. Please reconnect to continue syncing.",
-        );
+        // Token expired silently, user will see the disconnected state
       }
       setSyncStatus("error");
     }
@@ -214,9 +228,7 @@ const App: React.FC = () => {
       if (e.message && e.message.includes("401")) {
         setDriveToken(null);
         localStorage.removeItem("myexpense_drive_token");
-        alert(
-          "Your Google Drive session has expired. Please reconnect to continue syncing.",
-        );
+        // Session expired silently
       } else if (e.message && e.message.includes("403")) {
         alert(
           "Google Drive API error (403). Please ensure you have granted the necessary permissions.",
@@ -406,68 +418,21 @@ const App: React.FC = () => {
     );
   }
 
-  if (!driveToken) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full text-center"
-        >
-          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-            <Cloud size={40} />
-          </div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight font-heading mb-2">
-            Connect to Drive
-          </h2>
-          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            A Google Drive connection is required to keep your data safely
-            synced and secure across devices.
-          </p>
-          <button
-            onClick={login}
-            className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 text-xs uppercase tracking-widest transition-all focus:outline-none focus:ring-4 focus:ring-blue-600/30 mb-8"
-          >
-            Sign in with Google
-          </button>
-
-          <div className="bg-amber-50 rounded-2xl p-4 text-left border border-amber-100">
-            <div className="flex items-start gap-2 text-amber-800 mb-2">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <h3 className="text-xs font-bold uppercase tracking-wider">
-                Troubleshooting Login
-              </h3>
-            </div>
-            <ul className="text-[11px] text-amber-700/80 list-disc pl-6 space-y-1.5 leading-relaxed font-medium">
-              <li>
-                If you see "App not verified", ignore it for now or ensure your
-                developer email is added as a Test User in the Google Cloud
-                Console.
-              </li>
-              <li>
-                If you see "redirect_uri_mismatch", verify that your app url is
-                added under "Authorized JavaScript Origins" in your Google Cloud
-                credentials.
-              </li>
-              <li>
-                Wait 5-10 minutes after saving credentials in Google Cloud.
-              </li>
-            </ul>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-rose-50/50 flex flex-col relative font-['Inter']">
       <div className="flex-1 w-full flex flex-col transition-all duration-300">
         <div className="flex-1 w-full max-w-md mx-auto flex flex-col relative">
           <header className="px-6 pb-4 safe-top flex items-center justify-between z-30 sticky top-0 bg-gradient-to-r from-indigo-100/95 via-white/95 to-violet-50/95 backdrop-blur-2xl border-b border-white/60 shadow-md">
-            <div className="flex items-center gap-3 pt-4">
+            <div 
+              className="flex items-center gap-3 pt-4 cursor-pointer"
+              onPointerDown={handleLogoTouchStart}
+              onPointerUp={handleLogoTouchEnd}
+              onPointerLeave={handleLogoTouchEnd}
+              onClick={() => isInstallable && promptInstall()}
+            >
               <motion.div 
                 whileTap={{ scale: 0.9 }}
-                onClick={() => isInstallable && promptInstall()}
                 className={`bg-gradient-to-br from-indigo-600 to-violet-600 text-white p-2 rounded-xl shadow-lg transition-all ${isInstallable ? 'cursor-pointer animate-pulse' : ''}`}
               >
                 <LayoutGrid size={18} strokeWidth={2.5} />
@@ -585,7 +550,7 @@ const App: React.FC = () => {
                     className="space-y-6 pb-40"
                   >
                     {/* App Installation Section */}
-                    {(isInstallable || isInstalled) && (
+                    {(isInstallable || isInstalled || isInIframe) && (
                       <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-[36px] p-7 border border-indigo-400 shadow-xl space-y-4 text-white">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -597,7 +562,7 @@ const App: React.FC = () => {
                                 {isInstalled ? "App Installed" : "Install Native App"}
                               </h3>
                               <p className="text-[10px] text-indigo-100 font-bold uppercase tracking-wider">
-                                {isInstalled ? "Running in Native Mode" : "Add to home screen"}
+                                {isInstalled ? "Running in Native Mode" : isInIframe ? "In preview mode" : "Add to home screen"}
                               </p>
                             </div>
                           </div>
@@ -609,12 +574,25 @@ const App: React.FC = () => {
                               <Download size={14} /> Install
                             </button>
                           )}
+                          {!isInstalled && !isInstallable && isInIframe && (
+                            <button
+                              onClick={() => window.open(window.location.href, '_blank')}
+                              className="bg-white/20 text-white px-5 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest backdrop-blur-sm border border-white/30 flex items-center gap-2 active:scale-95 transition-all"
+                            >
+                              <ExternalLink size={14} /> Open in Tab
+                            </button>
+                          )}
                           {isInstalled && (
                             <div className="bg-emerald-500/20 text-emerald-100 p-2 rounded-full backdrop-blur-md">
                               <Check size={16} />
                             </div>
                           )}
                         </div>
+                        {!isInstalled && !isInstallable && isInIframe && (
+                          <p className="text-[10px] text-indigo-100 font-medium leading-relaxed bg-indigo-800/20 p-3 rounded-2xl">
+                            PWA apps cannot be installed from inside an iframe. Click "Open in Tab" to enable installation options.
+                          </p>
+                        )}
                       </div>
                     )}
 

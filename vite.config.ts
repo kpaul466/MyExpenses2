@@ -15,27 +15,44 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        injectRegister: 'auto',
         includeAssets: ['icon.svg'],
         devOptions: {
           enabled: true
         },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true
+        },
         manifest: {
           id: '/',
-          name: 'My Expenses',
-          short_name: 'My Expenses',
-          description: 'ExpenseTracker App with offline support and Google Drive sync',
+          name: 'MyExpenses - Smart Tracker',
+          short_name: 'MyExpense',
+          description: 'Smart Expense Tracker with Google Drive Backup',
           theme_color: '#4f46e5',
           background_color: '#ffffff',
           display: 'standalone',
+          orientation: 'portrait',
           start_url: '.',
+          scope: '/',
+          categories: ['finance', 'productivity'],
+          shortcuts: [
+            {
+              name: 'Add Expense',
+              url: '/?add=true',
+              icons: [{ src: 'icon.svg', sizes: '192x192' }]
+            }
+          ],
           icons: [
-             {
+            {
               src: 'icon.svg',
               sizes: '192x192',
               type: 'image/svg+xml',
               purpose: 'any'
             },
-             {
+            {
               src: 'icon.svg',
               sizes: '512x512',
               type: 'image/svg+xml',
