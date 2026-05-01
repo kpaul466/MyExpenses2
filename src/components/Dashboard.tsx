@@ -13,6 +13,8 @@ interface DashboardProps {
   expensePrivacy: boolean;
   currency: string;
   watchedCategoryIds: string[];
+  syncStatus: string;
+  lastSynced: number | null;
   onTogglePrivacy: (type: 'income' | 'expense') => void;
   onViewToday: () => void;
   onCategoryClick: (categoryId: string) => void;
@@ -25,6 +27,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   expensePrivacy,
   currency,
   watchedCategoryIds,
+  syncStatus,
+  lastSynced,
   onTogglePrivacy,
   onViewToday,
   onCategoryClick
@@ -188,6 +192,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <h2 className="text-5xl font-black font-heading tracking-tighter text-white transition-all duration-500">
             {formatAmount(stats.balance)}
           </h2>
+
+          <div className="mt-4 flex items-center gap-1.5 opacity-60">
+            <div className={`w-1.5 h-1.5 rounded-full ${syncStatus === 'syncing' ? 'bg-blue-400 animate-pulse' : syncStatus === 'success' ? 'bg-emerald-400' : 'bg-slate-400'}`} />
+            <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white">
+              {syncStatus === 'syncing' ? 'Vault Syncing...' : syncStatus === 'success' ? (
+                <>Secured to Drive {lastSynced ? `• ${new Date(lastSynced).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : ''}</>
+              ) : 'Local Storage Only'}
+            </p>
+          </div>
           
           <div className="mt-10 grid grid-cols-2 gap-4">
             <div className="bg-white/10 border border-white/10 rounded-3xl p-4 backdrop-blur-lg group">

@@ -1,8 +1,8 @@
 import { AppCategory, Transaction, Person, ShoppingItem, TransactionGroup, AppPreferences } from './types';
 
 const DEFAULT_CATEGORIES: AppCategory[] = [
-  { id: 'cat_gen', name: 'General', icon: 'Wallet', color: '#94a3b8' },
   { id: 'cat_food', name: 'Food', icon: 'Pizza', color: '#f59e0b' },
+  { id: 'cat_gen', name: 'General', icon: 'Wallet', color: '#94a3b8' },
   { id: 'cat_transport', name: 'Transport', icon: 'Car', color: '#3b82f6' },
 ];
 
@@ -60,7 +60,10 @@ export const localDB = {
     localStorage.setItem('myexpense_people', JSON.stringify(people));
     markModified();
   },
-  getCategories: (): AppCategory[] => JSON.parse(localStorage.getItem('myexpense_categories') || '[]'),
+  getCategories: (): AppCategory[] => {
+    const cats: AppCategory[] = JSON.parse(localStorage.getItem('myexpense_categories') || '[]');
+    return cats.sort((a, b) => a.name.localeCompare(b.name));
+  },
   saveCategory: (cat: AppCategory) => {
     const cats = localDB.getCategories();
     const existing = cats.findIndex(c => c.id === cat.id);
