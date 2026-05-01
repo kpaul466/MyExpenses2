@@ -21,6 +21,7 @@ import { Onboarding } from "./components/Onboarding";
 import { CategoryDetailModal } from "./components/CategoryDetailModal";
 import { googleDriveService } from "./services/googleDriveService";
 import { useGoogleLogin } from "@react-oauth/google";
+import { useInstallPrompt } from "./hooks/useInstallPrompt";
 import {
   LayoutGrid,
   Settings as SettingsIcon,
@@ -43,6 +44,8 @@ import {
   ChevronRight,
   Loader2,
   Cloud,
+  Smartphone,
+  Download,
 } from "lucide-react";
 
 const CURRENCIES = ["INR", "USD", "EUR", "GBP", "JPY", "CAD", "AUD"];
@@ -66,6 +69,8 @@ const App: React.FC = () => {
   const [showDriveReminder, setShowDriveReminder] = useState(false);
   const [selectedCategoryForDetail, setSelectedCategoryForDetail] =
     useState<AppCategory | null>(null);
+
+  const { isInstallable, promptInstall } = useInstallPrompt();
 
   const handleAddTransaction = (tx: Transaction) => {
     localDB.saveTransaction(tx);
@@ -843,6 +848,33 @@ const App: React.FC = () => {
                         </div>
                       </div>
                     </div>
+
+                    {/* App Installation */}
+                    {isInstallable && (
+                      <div className="bg-white/70 backdrop-blur-md rounded-[36px] p-7 border border-white shadow-sm space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-rose-500 text-white p-3 rounded-[20px] shadow-lg">
+                              <Smartphone size={24} />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-black text-slate-800 font-heading">
+                                Install App
+                              </h3>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                Add to Home Screen
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={promptInstall}
+                            className="bg-slate-900 text-white px-5 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 active:scale-95 transition-all"
+                          >
+                            <Download size={14} /> Install
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Privacy Shield Configurations */}
                     <div className="bg-white/70 backdrop-blur-md rounded-[36px] p-7 border border-white shadow-sm space-y-4">

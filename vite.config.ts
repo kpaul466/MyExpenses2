@@ -23,10 +23,19 @@ export default defineConfig(({mode}) => {
           short_name: 'My Expenses',
           description: 'ExpenseTracker App with offline support and Google Drive sync',
           theme_color: '#4f46e5',
+          background_color: '#ffffff',
+          display: 'standalone',
+          start_url: '/',
           icons: [
              {
               src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzRmNDZlNSIvPjx0ZXh0IHk9IjYwIiB4PSI1MCIgZm9udC1zaXplPSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+4oK5PC90ZXh0Pjwvc3ZnPg==',
               sizes: '192x192',
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
+            },
+             {
+              src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzRmNDZlNSIvPjx0ZXh0IHk9IjYwIiB4PSI1MCIgZm9udC1zaXplPSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+4oK5PC90ZXh0Pjwvc3ZnPg==',
+              sizes: '512x512',
               type: 'image/svg+xml',
               purpose: 'any maskable'
             }
