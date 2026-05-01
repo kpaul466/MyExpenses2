@@ -4,10 +4,15 @@ export function useInstallPrompt() {
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     // Check if in iframe
     setIsInIframe(window.self !== window.top);
+
+    // Check if iOS
+    const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    setIsIOS(isIosDevice);
 
     // Check if app is already in standalone mode
     if (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) {
@@ -47,5 +52,5 @@ export function useInstallPrompt() {
     }
   };
 
-  return { isInstallable, isInstalled, isInIframe, promptInstall };
+  return { isInstallable, isInstalled, isInIframe, isIOS, promptInstall };
 }

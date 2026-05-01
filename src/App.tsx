@@ -70,7 +70,7 @@ const App: React.FC = () => {
   const [selectedCategoryForDetail, setSelectedCategoryForDetail] =
     useState<AppCategory | null>(null);
 
-  const { isInstallable, isInstalled, isInIframe, promptInstall } = useInstallPrompt();
+  const { isInstallable, isInstalled, isInIframe, isIOS, promptInstall } = useInstallPrompt();
 
   const handleLogoTouchStart = () => {
     if (isInstallable) {
@@ -550,7 +550,7 @@ const App: React.FC = () => {
                     className="space-y-6 pb-40"
                   >
                     {/* App Installation Section */}
-                    {(isInstallable || isInstalled || isInIframe) && (
+                    
                       <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-[36px] p-7 border border-indigo-400 shadow-xl space-y-4 text-white">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -562,11 +562,11 @@ const App: React.FC = () => {
                                 {isInstalled ? "App Installed" : "Install Native App"}
                               </h3>
                               <p className="text-[10px] text-indigo-100 font-bold uppercase tracking-wider">
-                                {isInstalled ? "Running in Native Mode" : isInIframe ? "In preview mode" : "Add to home screen"}
+                                {isInstalled ? "Running in Native Mode" : isInIframe ? "In preview mode" : isIOS ? "IOS Supported" : "Add to home screen"}
                               </p>
                             </div>
                           </div>
-                          {!isInstalled && isInstallable && (
+                          {!isInstalled && isInstallable && !isIOS && (
                             <button
                               onClick={promptInstall}
                               className="bg-white text-indigo-600 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 active:scale-95 transition-all"
@@ -588,13 +588,45 @@ const App: React.FC = () => {
                             </div>
                           )}
                         </div>
+
+                        {!isInstalled && !isInstallable && !isInIframe && isIOS && (
+                          <div className="text-[10px] text-white font-medium leading-relaxed bg-black/20 p-4 rounded-2xl mt-4 backdrop-blur-md border border-white/10 flex items-start gap-3">
+                            <div className="mt-0.5 bg-white/20 p-1 rounded-md shrink-0">
+                               <Smartphone size={14} />
+                            </div>
+                            <div>
+                              <strong className="block mb-1 font-bold text-white uppercase tracking-wider">How to install on iOS:</strong>
+                              <ol className="list-decimal pl-3 space-y-1 text-indigo-100">
+                                <li>Tap the <span className="inline-block mx-1 font-bold">Share</span> button at the bottom of Safari.</li>
+                                <li>Scroll down and tap <span className="inline-block mx-1 font-bold">Add to Home Screen</span>.</li>
+                                <li>Tap <span className="inline-block mx-1 font-bold">Add</span> in the top right corner.</li>
+                              </ol>
+                            </div>
+                          </div>
+                        )}
+
+                        {!isInstalled && !isInstallable && !isInIframe && !isIOS && (
+                           <div className="text-[10px] text-white font-medium leading-relaxed bg-black/20 p-4 rounded-2xl mt-4 backdrop-blur-md border border-white/10 flex items-start gap-3">
+                             <div className="mt-0.5 bg-white/20 p-1 rounded-md shrink-0">
+                                <Smartphone size={14} />
+                             </div>
+                             <div>
+                               <strong className="block mb-1 font-bold text-white uppercase tracking-wider">How to install on Android:</strong>
+                               <ol className="list-decimal pl-3 space-y-1 text-indigo-100">
+                                 <li>Tap the <span className="inline-block mx-1 font-bold">3 dots menu</span> at the top right of Chrome.</li>
+                                 <li>Tap <span className="inline-block mx-1 font-bold">Install app</span> or <span className="inline-block mx-1 font-bold">Add to Home screen</span>.</li>
+                                 <li>Follow the on-screen instructions.</li>
+                               </ol>
+                             </div>
+                           </div>
+                        )}
+
                         {!isInstalled && !isInstallable && isInIframe && (
                           <p className="text-[10px] text-indigo-100 font-medium leading-relaxed bg-indigo-800/20 p-3 rounded-2xl">
                             PWA apps cannot be installed from inside an iframe. Click "Open in Tab" to enable installation options.
                           </p>
                         )}
                       </div>
-                    )}
 
                     {/* Regional Section */}
                     <div className="bg-white/70 backdrop-blur-md rounded-[36px] p-7 border border-white shadow-sm space-y-6">
