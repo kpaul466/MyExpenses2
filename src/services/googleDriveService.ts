@@ -3,7 +3,7 @@ const BACKUP_FILE_NAME = 'myexpenses_backup.json';
 export const googleDriveService = {
   findBackupFile: async (token: string) => {
     try {
-      const q = encodeURIComponent(`name = '${BACKUP_FILE_NAME}' and spaces = 'appDataFolder'`);
+      const q = encodeURIComponent(`name = '${BACKUP_FILE_NAME}'`);
       const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=appDataFolder&fields=files(id, name, modifiedTime)`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -30,16 +30,16 @@ export const googleDriveService = {
     };
 
     const boundary = '-------314159265358979323846';
-    const delimiter = "\r\n--" + boundary + "\r\n";
-    const close_delim = "\r\n--" + boundary + "--";
+    const delimiter = "--" + boundary;
+    const close_delim = "--" + boundary + "--";
 
     const multipartRequestBody =
-      delimiter +
+      delimiter + "\r\n" +
       'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-      JSON.stringify(metadata) +
-      delimiter +
+      JSON.stringify(metadata) + "\r\n" +
+      delimiter + "\r\n" +
       'Content-Type: application/json\r\n\r\n' +
-      fileContent +
+      fileContent + "\r\n" +
       close_delim;
 
     const url = fileId 
