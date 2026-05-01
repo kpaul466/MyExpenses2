@@ -806,6 +806,14 @@ const App: React.FC = () => {
                               </button>
                             )}
                           </div>
+                          <div className="mt-4 p-3 bg-red-50 rounded-[20px] border border-red-100 flex flex-col gap-2">
+                            <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight">Troubleshooting Login</span>
+                            <ul className="text-[9px] text-slate-600 space-y-1 list-disc pl-3">
+                              <li>If you see "App not verified", ignore it for now or ensure your developer email is added as a Test User in the Google Cloud Console.</li>
+                              <li>If you see "redirect_uri_mismatch", verify that your app url is added under "Authorized JavaScript Origins" in your Google Cloud credentials.</li>
+                              <li>Wait 5-10 minutes after saving credentials in Google Cloud.</li>
+                            </ul>
+                          </div>
                         </div>
                         <div className="flex items-center justify-between px-1">
                           <div className="flex items-center gap-2">

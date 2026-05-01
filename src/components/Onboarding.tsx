@@ -67,10 +67,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onFinish }) => {
   ];
 
   const nextStep = () => {
-    if (step < slides.length - 1) {
-      setStep(s => s + 1);
-    } else {
+    if (step >= slides.length - 1) {
       onFinish();
+    } else {
+      setStep(s => Math.min(s + 1, slides.length - 1));
     }
   };
 
