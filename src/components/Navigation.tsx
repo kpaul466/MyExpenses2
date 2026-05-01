@@ -18,7 +18,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange
   ];
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-2xl z-40 bg-slate-900/95 backdrop-blur-3xl border-t border-slate-800 shadow-[0_-8px_30px_rgba(0,0,0,0.3)] pb-safe flex flex-col">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 bg-slate-900/95 backdrop-blur-3xl border-t border-slate-800 shadow-[0_-8px_30px_rgba(0,0,0,0.3)] pb-safe flex flex-col">
       <div className="w-full flex items-center justify-around h-16 relative">
         {tabs.map((tab) => {
           const Icon = tab.icon;
