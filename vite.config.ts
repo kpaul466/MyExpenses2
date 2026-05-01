@@ -28,9 +28,9 @@ export default defineConfig(({mode}) => {
         },
         manifest: {
           id: '/',
-          name: 'MyExpenses - Smart Tracker',
-          short_name: 'MyExpense',
-          description: 'Smart Expense Tracker with Google Drive Backup',
+          name: 'Expense Manager',
+          short_name: 'Expense Manager',
+          description: 'Smart Expense Manager with Google Drive Backup',
           theme_color: '#4f46e5',
           background_color: '#ffffff',
           display: 'standalone',

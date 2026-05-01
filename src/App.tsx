@@ -23,7 +23,7 @@ import { googleDriveService } from "./services/googleDriveService";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useInstallPrompt } from "./hooks/useInstallPrompt";
 import {
-  LayoutGrid,
+  IndianRupee,
   Settings as SettingsIcon,
   Globe,
   Trash2,
@@ -391,7 +391,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#F7F9FF] flex flex-col items-center justify-center space-y-4">
         <div className="bg-indigo-600 text-white p-4 rounded-3xl shadow-xl animate-pulse">
-          <LayoutGrid size={48} />
+          <IndianRupee size={48} />
         </div>
         <div className="text-center">
           <h2 className="text-xl font-black text-slate-800 font-heading tracking-tight">
@@ -435,10 +435,10 @@ const App: React.FC = () => {
                 whileTap={{ scale: 0.9 }}
                 className={`bg-gradient-to-br from-indigo-600 to-violet-600 text-white p-2 rounded-xl shadow-lg transition-all ${isInstallable ? 'cursor-pointer animate-pulse' : ''}`}
               >
-                <LayoutGrid size={18} strokeWidth={2.5} />
+                <IndianRupee size={18} strokeWidth={2.5} />
               </motion.div>
               <h1 className="text-xl font-black text-slate-800 tracking-tight font-heading">
-                MyExpense
+                Expense Manager
               </h1>
             </div>
 
