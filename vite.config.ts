@@ -20,6 +20,7 @@ export default defineConfig(({mode}) => {
           enabled: true
         },
         manifest: {
+          id: '/',
           name: 'My Expenses',
           short_name: 'My Expenses',
           description: 'ExpenseTracker App with offline support and Google Drive sync',

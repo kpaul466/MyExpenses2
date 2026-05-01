@@ -70,7 +70,7 @@ const App: React.FC = () => {
   const [selectedCategoryForDetail, setSelectedCategoryForDetail] =
     useState<AppCategory | null>(null);
 
-  const { isInstallable, promptInstall } = useInstallPrompt();
+  const { isInstallable, isInstalled, promptInstall } = useInstallPrompt();
 
   const handleAddTransaction = (tx: Transaction) => {
     localDB.saveTransaction(tx);
@@ -465,9 +465,13 @@ const App: React.FC = () => {
         <div className="flex-1 w-full max-w-md mx-auto flex flex-col relative">
           <header className="px-6 pb-4 safe-top flex items-center justify-between z-30 sticky top-0 bg-gradient-to-r from-indigo-100/95 via-white/95 to-violet-50/95 backdrop-blur-2xl border-b border-white/60 shadow-md">
             <div className="flex items-center gap-3 pt-4">
-              <div className="bg-gradient-to-br from-indigo-600 to-violet-600 text-white p-2 rounded-xl shadow-lg">
+              <motion.div 
+                whileTap={{ scale: 0.9 }}
+                onClick={() => isInstallable && promptInstall()}
+                className={`bg-gradient-to-br from-indigo-600 to-violet-600 text-white p-2 rounded-xl shadow-lg transition-all ${isInstallable ? 'cursor-pointer animate-pulse' : ''}`}
+              >
                 <LayoutGrid size={18} strokeWidth={2.5} />
-              </div>
+              </motion.div>
               <h1 className="text-xl font-black text-slate-800 tracking-tight font-heading">
                 MyExpense
               </h1>
@@ -580,29 +584,36 @@ const App: React.FC = () => {
                     exit={{ opacity: 0, y: -20 }}
                     className="space-y-6 pb-40"
                   >
-                    {/* App Installation - High visibility if installable */}
-                    {isInstallable && (
+                    {/* App Installation Section */}
+                    {(isInstallable || isInstalled) && (
                       <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-[36px] p-7 border border-indigo-400 shadow-xl space-y-4 text-white">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="bg-white/20 p-3 rounded-[20px] backdrop-blur-md">
-                              <Smartphone size={24} />
+                              < Smartphone size={24} />
                             </div>
                             <div>
                               <h3 className="text-sm font-black font-heading">
-                                Install Native App
+                                {isInstalled ? "App Installed" : "Install Native App"}
                               </h3>
                               <p className="text-[10px] text-indigo-100 font-bold uppercase tracking-wider">
-                                Add to home screen
+                                {isInstalled ? "Running in Native Mode" : "Add to home screen"}
                               </p>
                             </div>
                           </div>
-                          <button
-                            onClick={promptInstall}
-                            className="bg-white text-indigo-600 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 active:scale-95 transition-all"
-                          >
-                            <Download size={14} /> Install
-                          </button>
+                          {!isInstalled && isInstallable && (
+                            <button
+                              onClick={promptInstall}
+                              className="bg-white text-indigo-600 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 active:scale-95 transition-all"
+                            >
+                              <Download size={14} /> Install
+                            </button>
+                          )}
+                          {isInstalled && (
+                            <div className="bg-emerald-500/20 text-emerald-100 p-2 rounded-full backdrop-blur-md">
+                              <Check size={16} />
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
