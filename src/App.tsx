@@ -234,6 +234,10 @@ const App: React.FC = () => {
   });
 
   const login = async () => {
+    if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+      alert("Missing Google Client ID. Please configure VITE_GOOGLE_CLIENT_ID in Settings > Secrets menu.");
+      return;
+    }
     webLogin();
   };
 
