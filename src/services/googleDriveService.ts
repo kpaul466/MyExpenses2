@@ -3,12 +3,16 @@ const BACKUP_FILE_NAME = 'myexpenses_backup.json';
 export const googleDriveService = {
   findBackupFile: async (token: string) => {
     try {
-      const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${BACKUP_FILE_NAME}' and spaces='appDataFolder'&spaces=appDataFolder&fields=files(id, name, modifiedTime)`, {
+      const q = encodeURIComponent(`name = '${BACKUP_FILE_NAME}' and spaces = 'appDataFolder'`);
+      const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=appDataFolder&fields=files(id, name, modifiedTime)`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      if (!response.ok) throw new Error(`Drive API Error: ${response.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Drive API Error: ${response.status} - ${errorText}`);
+      }
       const data = await response.json();
       return data.files && data.files.length > 0 ? data.files[0] : null;
     } catch (e) {
@@ -22,12 +26,21 @@ export const googleDriveService = {
     const metadata = {
       name: BACKUP_FILE_NAME,
       mimeType: 'application/json',
-      parents: ['appDataFolder']
+      parents: fileId ? undefined : ['appDataFolder']
     };
 
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(fileId ? {} : metadata)], { type: 'application/json' }));
-    form.append('file', new Blob([fileContent], { type: 'application/json' }));
+    const boundary = '-------314159265358979323846';
+    const delimiter = "\r\n--" + boundary + "\r\n";
+    const close_delim = "\r\n--" + boundary + "--";
+
+    const multipartRequestBody =
+      delimiter +
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      fileContent +
+      close_delim;
 
     const url = fileId 
       ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart` 
@@ -38,12 +51,16 @@ export const googleDriveService = {
     const response = await fetch(url, {
       method,
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`
       },
-      body: form
+      body: multipartRequestBody
     });
 
-    if (!response.ok) throw new Error(`Drive Upload Error: ${response.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Drive Upload Error: ${response.status} - ${errorText}`);
+    }
     return response.json();
   },
 
@@ -53,7 +70,10 @@ export const googleDriveService = {
         'Authorization': `Bearer ${token}`
       }
     });
-    if (!response.ok) throw new Error(`Drive Download Error: ${response.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Drive Download Error: ${response.status} - ${errorText}`);
+    }
     return response.json();
   }
 };
