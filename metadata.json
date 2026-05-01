@@ -1,0 +1,6 @@
+{
+  "name": "My Expenses",
+  "description": "PWA offline ExpenseTracker App with Google Drive Sync",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
