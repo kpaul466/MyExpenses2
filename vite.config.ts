@@ -7,8 +7,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
+  const isGitHubActions = process.env.GITHUB_ACTIONS === 'true';
   return {
-    base: '/MyExpenses2/',
+    base: isGitHubActions ? '/MyExpenses2/' : '/',
     plugins: [
       react(), 
       tailwindcss(),
