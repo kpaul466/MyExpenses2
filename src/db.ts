@@ -33,6 +33,17 @@ export const localDB = {
     if (!localStorage.getItem('myexpense_people')) {
       localStorage.setItem('myexpense_people', JSON.stringify([{ id: 'p1', name: 'Myself' }]));
     }
+    if (!localStorage.getItem('myexpense_deleted_ids')) {
+      localStorage.setItem('myexpense_deleted_ids', JSON.stringify([]));
+    }
+  },
+  getDeletedIds: (): string[] => JSON.parse(localStorage.getItem('myexpense_deleted_ids') || '[]'),
+  trackDeletion: (id: string) => {
+    const ids = localDB.getDeletedIds();
+    if (!ids.includes(id)) {
+      ids.push(id);
+      localStorage.setItem('myexpense_deleted_ids', JSON.stringify(ids));
+    }
   },
   getTransactions: (): Transaction[] => JSON.parse(localStorage.getItem('myexpense_transactions') || '[]'),
   saveTransaction: (tx: Transaction) => {
@@ -46,6 +57,7 @@ export const localDB = {
   deleteTransaction: (id: string) => {
     const txs = localDB.getTransactions().filter(t => t.id !== id);
     localStorage.setItem('myexpense_transactions', JSON.stringify(txs));
+    localDB.trackDeletion(id);
     markModified();
   },
   getPeople: (): Person[] => JSON.parse(localStorage.getItem('myexpense_people') || '[]'),
@@ -58,6 +70,7 @@ export const localDB = {
   deletePerson: (id: string) => {
     const people = localDB.getPeople().filter(p => p.id !== id);
     localStorage.setItem('myexpense_people', JSON.stringify(people));
+    localDB.trackDeletion(id);
     markModified();
   },
   getCategories: (): AppCategory[] => {
@@ -75,6 +88,7 @@ export const localDB = {
   deleteCategory: (id: string) => {
     const cats = localDB.getCategories().filter(c => c.id !== id);
     localStorage.setItem('myexpense_categories', JSON.stringify(cats));
+    localDB.trackDeletion(id);
     markModified();
   },
   getPrefs: (): AppPreferences => {
@@ -108,6 +122,15 @@ export const localDB = {
   deletePlannerGroup: (id: string) => {
     const groups = localDB.getPlannerGroups().filter(g => g.id !== id);
     localStorage.setItem('myexpense_planner_groups', JSON.stringify(groups));
+    
+    // Also delete and track items in this group
+    const items = localDB.getPlannerItems();
+    const itemsToDelete = items.filter(i => i.groupId === id);
+    const remainingItems = items.filter(i => i.groupId !== id);
+    localStorage.setItem('myexpense_planner_items', JSON.stringify(remainingItems));
+    
+    itemsToDelete.forEach(item => localDB.trackDeletion(item.id));
+    localDB.trackDeletion(id);
     markModified();
   },
   getPlannerItems: (): ShoppingItem[] => JSON.parse(localStorage.getItem('myexpense_planner_items') || '[]'),
@@ -122,6 +145,7 @@ export const localDB = {
   deletePlannerItem: (id: string) => {
     const items = localDB.getPlannerItems().filter(i => i.id !== id);
     localStorage.setItem('myexpense_planner_items', JSON.stringify(items));
+    localDB.trackDeletion(id);
     markModified();
   },
   settleCredit: (id: string) => {
@@ -140,7 +164,8 @@ export const localDB = {
       categories: localDB.getCategories(),
       plannerGroups: localDB.getPlannerGroups(),
       plannerItems: localDB.getPlannerItems(),
-      prefs: localDB.getPrefs()
+      prefs: localDB.getPrefs(),
+      deletedIds: localDB.getDeletedIds()
     };
   },
   restoreFullState: (state: any) => {
@@ -150,14 +175,32 @@ export const localDB = {
     if (state.plannerGroups) localStorage.setItem('myexpense_planner_groups', JSON.stringify(state.plannerGroups));
     if (state.plannerItems) localStorage.setItem('myexpense_planner_items', JSON.stringify(state.plannerItems));
     if (state.prefs) localStorage.setItem('myexpense_prefs', JSON.stringify(state.prefs));
+    if (state.deletedIds) localStorage.setItem('myexpense_deleted_ids', JSON.stringify(state.deletedIds));
     markModified();
   },
   mergeFullState: (remoteState: any) => {
+    // Collect all deleted IDs from both sides
+    const localDeleted = localDB.getDeletedIds();
+    const remoteDeleted = remoteState.deletedIds || [];
+    const combinedDeleted = new Set([...localDeleted, ...remoteDeleted]);
+    
+    // Update local deleted IDs
+    localStorage.setItem('myexpense_deleted_ids', JSON.stringify(Array.from(combinedDeleted)));
+
     const mergeArrays = (local: any[], remote: any[], customMerge?: (l: any, r: any) => any) => {
-      if (!remote) return local;
+      if (!remote) return local.filter(item => !combinedDeleted.has(item.id));
       const mergedMap = new Map();
-      remote.forEach(item => mergedMap.set(item.id, item));
+      
+      // Filter remote by combined deleted list
+      remote.forEach(item => {
+        if (!combinedDeleted.has(item.id)) {
+          mergedMap.set(item.id, item);
+        }
+      });
+      
       local.forEach(item => {
+        if (combinedDeleted.has(item.id)) return;
+        
         if (!mergedMap.has(item.id)) {
            mergedMap.set(item.id, item);
         } else if (customMerge) {
@@ -172,7 +215,6 @@ export const localDB = {
         ...r,
         isCleared: l.isCleared || r.isCleared 
       }));
-       // sort by timestamp descending
       merged.sort((a, b) => b.timestamp - a.timestamp);
       localStorage.setItem('myexpense_transactions', JSON.stringify(merged));
     }
@@ -195,7 +237,7 @@ export const localDB = {
       }));
       localStorage.setItem('myexpense_planner_items', JSON.stringify(merged));
     }
-    // merge prefs (excluding googleDrive settings which are device specific or token specific)
+    // merge prefs
     if (remoteState.prefs) {
       const localPrefs = localDB.getPrefs();
       const mergedPrefs = {
