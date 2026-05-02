@@ -3,7 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAx
 import { Transaction, AppCategory, TransactionType } from '../types';
 import { BarChart3, TrendingUp, Wallet, ListChecks, Check, Download, FileText, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
 interface AnalyticsViewProps {
@@ -103,32 +103,35 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ expenses, categori
     setIsGenerating(true);
 
     try {
-      // Small delay to ensure any animations or renders are settled
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Allow more time for initial chart rendering in the off-screen div
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: 794,
+        windowWidth: 794,
+        scrollY: -window.scrollY // Fixes issues when scrolled down
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
       const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
+        orientation: 'p',
+        unit: 'px',
+        format: 'a4',
+        hotfixes: ['px_scaling']
       });
 
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = (canvas.height * pageWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
       pdf.save(`Expense_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-    } catch (error) {
-      console.error('PDF Generation failed:', error);
-      alert('Failed to generate PDF. Please try again.');
+    } catch (error: any) {
+      console.error('PDF Generation Error:', error);
+      alert('Unable to generate PDF. For best results, try opening the app in a new tab or use a desktop browser.');
     } finally {
       setIsGenerating(false);
     }
@@ -142,91 +145,101 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ expenses, categori
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700 pb-40">
-      {/* Hidden Report Template for PDF Generation */}
-      <div className="fixed -left-[2000px] top-0 w-[800px] bg-white text-slate-900" ref={reportRef}>
-        <div className="p-10 space-y-10">
+      {/* Report Template for PDF Generation - Rendered off-screen with explicit layout */}
+      <div 
+        data-report-container="monthly-expense"
+        style={{ 
+          position: 'absolute', 
+          top: '-9999px', 
+          left: '0', 
+          width: '794px', 
+          backgroundColor: 'white',
+          visibility: 'visible'
+        }} 
+        ref={reportRef}
+      >
+        <div className="p-10 space-y-8 bg-white">
           <div className="flex items-center justify-between border-b pb-8 border-slate-100">
             <div>
               <h1 className="text-3xl font-black font-heading text-indigo-600">Monthly Expense Report</h1>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1">
                 Generated: {new Date().toLocaleDateString(undefined, { dateStyle: 'full' })}
               </p>
             </div>
             <div className="text-right">
-              <div className="bg-slate-50 px-6 py-4 rounded-3xl inline-block border border-slate-100">
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Period Total</p>
-                 <p className="text-2xl font-black text-indigo-600 font-heading">{formatAmount(stats.expense, 'EXPENSE')}</p>
+              <div className="bg-slate-50 px-6 py-4 rounded-3xl border border-slate-100">
+                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Period Total</p>
+                 <p className="text-xl font-black text-indigo-600 font-heading">{formatAmount(stats.expense, 'EXPENSE')}</p>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-6">
-            <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100">
-               <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">Total Income</p>
-               <p className="text-xl font-black font-heading text-emerald-700">{formatAmount(stats.income, 'INCOME')}</p>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-emerald-50 p-5 rounded-3xl border border-emerald-100">
+               <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Total Income</p>
+               <p className="text-lg font-black font-heading text-emerald-700">{formatAmount(stats.income, 'INCOME')}</p>
             </div>
-            <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100">
-               <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-2">Total Expenses</p>
-               <p className="text-xl font-black font-heading text-rose-700">{formatAmount(stats.expense, 'EXPENSE')}</p>
+            <div className="bg-rose-50 p-5 rounded-3xl border border-rose-100">
+               <p className="text-[8px] font-black text-rose-600 uppercase tracking-widest mb-1">Total Expenses</p>
+               <p className="text-lg font-black font-heading text-rose-700">{formatAmount(stats.expense, 'EXPENSE')}</p>
             </div>
-            <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100">
-               <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">Net Balance</p>
-               <p className="text-xl font-black font-heading text-blue-700">{formatAmount(stats.income - stats.expense)}</p>
+            <div className="bg-blue-50 p-5 rounded-3xl border border-blue-100">
+               <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">Net Balance</p>
+               <p className="text-lg font-black font-heading text-blue-700">{formatAmount(stats.income - stats.expense)}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-10">
-            <div className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+          <div className="grid grid-cols-5 gap-8">
+            <div className="col-span-2 space-y-4">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <Wallet size={12} /> Category Allocation
               </h3>
-              <div className="space-y-3">
-                {categoryData.map(cat => (
-                  <div key={cat.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="space-y-2">
+                {categoryData.slice(0, 8).map(cat => (
+                  <div key={cat.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-                      <span className="text-xs font-bold text-slate-700">{cat.name}</span>
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                      <span className="text-[10px] font-bold text-slate-700">{cat.name}</span>
                     </div>
-                    <span className="text-xs font-black text-slate-900">{formatAmount(cat.value, 'EXPENSE')}</span>
+                    <span className="text-[10px] font-black text-slate-900">{formatAmount(cat.value, 'EXPENSE')}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="space-y-4">
-               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <div className="col-span-3 space-y-4">
+               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <TrendingUp size={12} /> Trajectory Snapshot
               </h3>
-               <div className="h-[200px] w-full border border-slate-100 rounded-3xl p-4 bg-slate-50/30">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trendData}>
-                      <Area type="monotone" dataKey="expense" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} />
-                      <Area type="monotone" dataKey="income" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
-                    </AreaChart>
-                  </ResponsiveContainer>
+               <div className="h-[180px] w-full border border-slate-100 rounded-3xl p-4 bg-slate-50/30 flex items-center justify-center">
+                  {/* Remove ResponsiveContainer for PDF generation stability */}
+                  <AreaChart width={400} height={160} data={trendData}>
+                    <Area type="monotone" dataKey="expense" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} />
+                    <Area type="monotone" dataKey="income" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
+                  </AreaChart>
                </div>
                <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
-                 <p className="text-[10px] font-bold text-indigo-700 leading-relaxed uppercase tracking-tight">
-                    Your major spending this month was in <strong>{categoryData[0]?.name || 'N/A'}</strong>. 
-                    You saved {Math.max(0, Math.round(((stats.income - stats.expense) / stats.income) * 100)) || 0}% of your total income.
+                 <p className="text-[9px] font-bold text-indigo-700 leading-relaxed uppercase tracking-tight">
+                    Primary expense segment: <strong>{categoryData[0]?.name || 'N/A'}</strong>. 
+                    Savings Ratio: {Math.max(0, Math.round(((stats.income - stats.expense) / Math.max(1, stats.income)) * 100)) || 0}%
                  </p>
                </div>
             </div>
           </div>
 
-          <div className="pt-10 border-t border-slate-100">
-             <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Transaction Journal</h3>
-                <div className="bg-slate-900 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
+          <div className="pt-8 border-t border-slate-100">
+             <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recent Activity</h3>
+                <div className="bg-slate-900 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">
                   {currentMonthExpenses.length} Records
                 </div>
              </div>
              <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
-                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Note</th>
-                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Amount</th>
+                  <tr className="border-b border-slate-50">
+                    <th className="pb-3 text-[8px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                    <th className="pb-3 text-[8px] font-black text-slate-400 uppercase tracking-widest">Category</th>
+                    <th className="pb-3 text-[8px] font-black text-slate-400 uppercase tracking-widest">Note</th>
+                    <th className="pb-3 text-[8px] font-black text-slate-400 uppercase tracking-widest text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -234,10 +247,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ expenses, categori
                     const cat = categories.find(c => c.id === tx.categoryId);
                     return (
                       <tr key={tx.id}>
-                        <td className="py-4 text-xs font-medium text-slate-500">{new Date(tx.timestamp).toLocaleDateString()}</td>
-                        <td className="py-4 text-xs font-black text-slate-900 uppercase tracking-tight">{cat?.name}</td>
-                        <td className="py-4 text-xs text-slate-400 italic truncate max-w-[150px]">{tx.note || '-'}</td>
-                        <td className={`py-4 text-xs font-black text-right ${tx.type === 'INCOME' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                        <td className="py-3 text-[9px] font-medium text-slate-500">{new Date(tx.timestamp).toLocaleDateString()}</td>
+                        <td className="py-3 text-[9px] font-black text-slate-900 uppercase tracking-tight">{cat?.name}</td>
+                        <td className="py-3 text-[9px] text-slate-400 italic truncate max-w-[150px]">{tx.note || '-'}</td>
+                        <td className={`py-3 text-[9px] font-black text-right ${tx.type === 'INCOME' ? 'text-emerald-600' : 'text-slate-900'}`}>
                           {tx.type === 'INCOME' ? '+' : '-'}{formatAmount(tx.amount)}
                         </td>
                       </tr>
@@ -245,9 +258,6 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ expenses, categori
                   })}
                 </tbody>
              </table>
-             {currentMonthExpenses.length > 15 && (
-               <p className="mt-4 text-center text-[10px] font-bold text-slate-400 italic tracking-wider">... and {currentMonthExpenses.length - 15} more records</p>
-             )}
           </div>
         </div>
       </div>
