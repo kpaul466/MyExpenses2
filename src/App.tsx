@@ -588,6 +588,7 @@ const App: React.FC = () => {
                     incomePrivacy={prefs.incomePrivacy}
                     expensePrivacy={prefs.expensePrivacy}
                     currency={prefs.currency}
+                    userName={userProfile?.name || userProfile?.email?.split('@')[0] || "User"}
                   />
                 )}
                 {activeView === "history" && (
@@ -646,8 +647,8 @@ const App: React.FC = () => {
                     {/* Account Section */}
                     {driveToken && userProfile && (
                       <div className="bg-gradient-to-br from-indigo-50 to-white backdrop-blur-md rounded-[32px] p-5 border border-indigo-100 shadow-sm">
-                        <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto min-w-0 overflow-hidden">
+                        <div className="flex flex-col gap-4">
+                           <div className="flex items-center gap-3 min-w-0 overflow-hidden">
                              {userProfile.picture ? (
                                <img src={userProfile.picture} alt="Profile" className="w-12 h-12 rounded-full border-2 border-white shadow-sm bg-white flex-shrink-0"/>
                              ) : (
@@ -666,7 +667,7 @@ const App: React.FC = () => {
                            </div>
                            <button
                              onClick={handleLogout}
-                             className="w-full sm:w-auto bg-rose-50 hover:bg-rose-100 text-rose-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm active:scale-95 transition-all text-center border border-rose-100 flex-shrink-0"
+                             className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm active:scale-95 transition-all text-center border border-rose-100 flex-shrink-0"
                            >
                               Logout
                            </button>
