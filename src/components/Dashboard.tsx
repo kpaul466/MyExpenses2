@@ -68,8 +68,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const stats = useMemo(() => {
     const income = realizedExpenses.filter(e => e.type === 'INCOME').reduce((s, e) => s + e.amount, 0);
     const spent = realizedExpenses.filter(e => e.type === 'EXPENSE').reduce((s, e) => s + e.amount, 0);
-    return { income, spent, balance: income - spent };
-  }, [realizedExpenses]);
+    
+    const creditTxs = filteredExpenses.filter(e => e.paymentMode === 'CREDIT' && !e.isCleared);
+    const lent = creditTxs.filter(e => e.creditType === 'LENT').reduce((s, e) => s + e.amount, 0);
+    const borrowed = creditTxs.filter(e => e.creditType === 'BORROWED').reduce((s, e) => s + e.amount, 0);
+
+    return { income, spent, balance: income - spent, lent, borrowed };
+  }, [realizedExpenses, filteredExpenses]);
 
   const watchedTotals = useMemo(() => {
     return watchedCategoryIds.map(cid => {
@@ -78,7 +83,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         .filter(e => e.categoryId === cid && e.type === 'EXPENSE')
         .reduce((sum, e) => sum + e.amount, 0);
       return { ...cat, total };
-    }).filter(item => item.id);
+    }).filter(item => !!item.id);
   }, [realizedExpenses, categories, watchedCategoryIds]);
 
   const recentTxs = useMemo(() => {
@@ -202,31 +207,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </p>
           </div>
           
-          <div className="mt-10 grid grid-cols-2 gap-4">
-            <div className="bg-white/10 border border-white/10 rounded-3xl p-4 backdrop-blur-lg group">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2 text-emerald-300 text-[9px] font-black uppercase tracking-widest">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Inflow
+          <div className="mt-10 grid grid-cols-3 gap-2">
+            <div className="bg-white/10 border border-white/10 rounded-3xl p-3 backdrop-blur-lg group">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5 text-emerald-300 text-[8px] font-black uppercase tracking-widest">
+                  <div className="w-1 h-1 rounded-full bg-emerald-400" /> In
                 </div>
                 <button onClick={() => onTogglePrivacy('income')} className="text-emerald-300/60 hover:text-white transition-colors">
-                  {incomePrivacy ? <Lock size={12} /> : <Unlock size={12} />}
+                  {incomePrivacy ? <Lock size={10} /> : <Unlock size={10} />}
                 </button>
               </div>
-              <p className={`text-xl font-black font-heading ${incomePrivacy ? 'blur-md opacity-30' : ''}`}>
+              <p className={`text-base font-black font-heading ${incomePrivacy ? 'blur-md opacity-30' : ''}`}>
                 {formatAmount(stats.income, 'INCOME')}
               </p>
             </div>
-            <div className="bg-white/10 border border-white/10 rounded-3xl p-4 backdrop-blur-lg">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2 text-rose-300 text-[9px] font-black uppercase tracking-widest">
-                  <div className="w-1.5 h-1.5 rounded-full bg-rose-400" /> Outflow
+            <div className="bg-white/10 border border-white/10 rounded-3xl p-3 backdrop-blur-lg">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5 text-rose-300 text-[8px] font-black uppercase tracking-widest">
+                  <div className="w-1 h-1 rounded-full bg-rose-400" /> Out
                 </div>
                 <button onClick={() => onTogglePrivacy('expense')} className="text-rose-300/60 hover:text-white transition-colors">
-                  {expensePrivacy ? <Lock size={12} /> : <Unlock size={12} />}
+                  {expensePrivacy ? <Lock size={10} /> : <Unlock size={10} />}
                 </button>
               </div>
-              <p className={`text-xl font-black font-heading ${expensePrivacy ? 'blur-md opacity-30' : ''}`}>
+              <p className={`text-base font-black font-heading ${expensePrivacy ? 'blur-md opacity-30' : ''}`}>
                 {formatAmount(stats.spent, 'EXPENSE')}
+              </p>
+            </div>
+            <div className="bg-white/10 border border-white/10 rounded-3xl p-3 backdrop-blur-lg">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5 text-amber-300 text-[8px] font-black uppercase tracking-widest">
+                  <div className="w-1 h-1 rounded-full bg-amber-400" /> Credit
+                </div>
+              </div>
+              <p className={`text-base font-black font-heading ${expensePrivacy ? 'blur-md opacity-30' : ''}`}>
+                {formatAmount(stats.borrowed, 'EXPENSE')}
               </p>
             </div>
           </div>
